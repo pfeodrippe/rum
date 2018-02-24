@@ -270,6 +270,7 @@ func NewContext(parent *Context) *Context {
 			"type":     Type,
 			"true":     true,
 			"false":    false,
+			"nil":      nil,
 			"+":        OpAdd,
 			"-":        OpSub,
 			"*":        OpMul,
