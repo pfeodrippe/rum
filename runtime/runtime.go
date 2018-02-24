@@ -145,7 +145,6 @@ func (c *Context) dispatch(input parser.Value) (parser.Value, error) {
 		if len(data) <= 0 {
 			return parser.NewAny(nil, nil), nil
 		}
-
 		fn, err := c.eval(data[0])
 		if err != nil {
 			return nil, err
@@ -406,7 +405,7 @@ func Def(ctx *Context, args ...parser.Value) parser.Value {
 
 // Lambda anonymous functions that are evaluated only when they are encountered in the program
 func Lambda(ctx *Context, args ...parser.Value) parser.Value {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		panic("Invalid arguments")
 	}
 
@@ -422,19 +421,41 @@ func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 		}
 		names = append(names, id)
 	}
-	implValue := args[1]
-	impl := func(implCtx *Context, args ...parser.Value) parser.Value {
-		if len(args) != len(names) {
-			panic("TODO")
+	s := len(args)
+	var intermediaryFuncs []interface{}
+	for i, v := range args[1:] {
+		implValue := v
+		impl := func(implCtx *Context, args ...parser.Value) parser.Value {
+			if len(args) != len(names) {
+				panic("TODO")
+			}
+			nested := NewContext(implCtx)
+			for i, name := range names {
+				nested.Set(name, implCtx.MustEval(args[i]))
+			}
+			for _, f := range intermediaryFuncs {
+				f.(func(*Context, ...parser.Value) parser.Value)(nested, args...)
+			}
+			return nested.MustEval(implValue)
 		}
-		nested := NewContext(implCtx)
-		for i, name := range names {
-			nested.Set(name, implCtx.MustEval(args[i]))
-		}
-		return nested.MustEval(implValue)
-	}
+		if s == i + 2 { // If it's the last expression
+			return parser.NewAny(Internal(impl), nil)
+		} else {
+			impl2 := func(implCtx *Context, args ...parser.Value) parser.Value {
+				if len(args) != len(names) {
+					panic("TODO")
+				}
+				nested := NewContext(implCtx)
+				for i, name := range names {
+					nested.Set(name, ctx.MustEval(args[i]))
+				}
+				return nested.MustEval(implValue)
+			}
 
-	return parser.NewAny(Internal(impl), nil)
+			intermediaryFuncs = append(intermediaryFuncs, impl2)
+		}
+	}
+	return parser.NewAny(nil, nil)
 }
 
 // Type implements the type function.
