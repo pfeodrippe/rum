@@ -259,6 +259,7 @@ func NewContext(parent *Context) *Context {
 			"if":       Internal(If),
 			"def":      Internal(Def),
 			"lambda":   Internal(Lambda),
+			"fn":       Internal(Lambda),
 			"eval":     Internal(Eval),
 			"for":      Internal(For),
 			"coerce":   Internal(Coerce),
